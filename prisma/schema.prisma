@@ -1,0 +1,67 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String    @unique
+  password      String? // Hashed password
+  image         String?
+  role          String    @default("CLIENT") // CLIENT, LAWYER, ADMIN
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  lawyerProfile LawyerProfile?
+  cases         Case[]         @relation("ClientCases")
+  proposals     Proposal[]     @relation("LawyerProposals")
+}
+
+model LawyerProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  specialties   String?  // Comma separated or JSON
+  licenseId     String?  // Matricula
+  bio           String?
+  subscription  String   @default("FREE") // FREE, PLUS, PREMIUM
+  verified      Boolean  @default(false)
+}
+
+model Case {
+  id          String     @id @default(cuid())
+  title       String
+  description String
+  category    String?
+  location    String?
+  status      String     @default("OPEN") // OPEN, IN_PROGRESS, CLOSED
+  clientId    String
+  client      User       @relation("ClientCases", fields: [clientId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  proposals   Proposal[]
+}
+
+model Proposal {
+  id          String   @id @default(cuid())
+  message     String
+  price       Float?
+  status      String   @default("PENDING") // PENDING, ACCEPTED, REJECTED
+  
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  
+  lawyerId    String
+  lawyer      User     @relation("LawyerProposals", fields: [lawyerId], references: [id])
+  
+  createdAt   DateTime @default(now())
+}
